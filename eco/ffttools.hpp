@@ -55,15 +55,15 @@ the use of this software, even if advised of the possibility of such damage.
 
 namespace eco
 {
-cv::Mat dft(const cv::Mat img_org, const bool backwards = false);
-cv::Mat fftshift(const cv::Mat img_org,
-				   const bool rowshift = true,
-				   const bool colshift = true,
-				   const bool reverse = 0);
+cv::Mat dft(const cv::Mat &img_org, const bool backwards = false);
+cv::Mat fftshift(const cv::Mat &img_org,
+				 const bool rowshift = true,
+				 const bool colshift = true,
+				 const bool reverse = 0);
 
-cv::Mat real(const cv::Mat img);
-cv::Mat imag(const cv::Mat img);
-cv::Mat magnitude(const cv::Mat img);
+cv::Mat real(const cv::Mat &img);
+cv::Mat imag(const cv::Mat &img);
+cv::Mat magnitude(const cv::Mat &img);
 cv::Mat complexDotMultiplication(const cv::Mat &a, const cv::Mat &b);
 cv::Mat complexDotMultiplicationCPU(const cv::Mat &a, const cv::Mat &b);
 #ifdef USE_SIMD
@@ -74,10 +74,10 @@ cv::Mat complexDotMultiplicationSIMD(const cv::Mat &a, const cv::Mat &b);
 cv::Mat complexDotMultiplicationGPU(const cv::Mat &a, const cv::Mat &b);
 #endif
 */
-cv::Mat complexDotDivision(const cv::Mat a, const cv::Mat b);
+cv::Mat complexDotDivision(const cv::Mat &a, const cv::Mat &b);
 cv::Mat complexMatrixMultiplication(const cv::Mat &a, const cv::Mat &b);
-cv::Mat complexConvolution(const cv::Mat a_input,
-						   const cv::Mat b_input,
+cv::Mat complexConvolution(const cv::Mat &a_input,
+						   const cv::Mat &b_input,
 						   const bool valid = 0);
 
 cv::Mat real2complex(const cv::Mat &x);

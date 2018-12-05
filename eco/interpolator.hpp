@@ -5,7 +5,8 @@
 #include <math.h>
 #include "debug.hpp"
 
-namespace eco{
+namespace eco
+{
 class Interpolator
 {
   public:
@@ -36,13 +37,13 @@ class Interpolator
 		return (sin(4 * x * M_PI));
 	}
 
-	static void get_interp_fourier(cv::Size filter_sz, 
+	static void get_interp_fourier(cv::Size filter_sz,
 								   cv::Mat &interp1_fs,
-								   cv::Mat &interp2_fs, 
+								   cv::Mat &interp2_fs,
 								   float a);
 
 	static cv::Mat cubic_spline_fourier(cv::Mat f, float a);
 };
-}
+} // namespace eco
 
 #endif

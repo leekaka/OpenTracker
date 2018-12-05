@@ -59,7 +59,7 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	printMat(im);
 	debug("is_color_image_: %d, rect: %f, %f, %f, %f", is_color_image_, rect.x, rect.y, rect.width, rect.height);
 
-	// Get the ini position
+	// Get the ini position(center)
 	pos_.x = rect.x + (rect.width - 1.0) / 2.0;
 	pos_.y = rect.y + (rect.height - 1.0) / 2.0;
 	debug("pos_:%f, %f", pos_.y, pos_.x);
@@ -68,6 +68,7 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	init_parameters(paramters);
 	printf("max_score_threshhold: %f\n", params_.max_score_threshhold);
 
+	cout<<endl;
 	// Calculate search area and initial scale factor
 	float search_area = rect.area() * std::pow(params_.search_area_scale, 2);
 	debug("search_area:%f", search_area);

@@ -11,6 +11,13 @@ option(OPENCV      		  "use OPENCV"              ON)
 option(OPENMP      		  "use OPENMP"              OFF)
 option(CUDNN       		  "use CUDNN"               OFF)
 option(MULTI_THREAD       "use MULTI_THREAD"        ON)
+option(USE_FFTW		      "use fftw"		        OFF)
+
+if(USE_FFTW)
+	message(STATUS "use fftw to compile")
+	add_definitions(-DUSE_FFTW)
+	set(LIBS ${LIBS} -lfftw3)
+endif()
 
 #0:no-simd;1:sse-Intel;2:neon-TX2;
 set(SIMD 1)
@@ -33,7 +40,7 @@ if(MULTI_THREAD)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE RELEASE)
+	set(CMAKE_BUILD_TYPE DEBUG)
 endif()
 message(STATUS "compile type：" ${CMAKE_BUILD_TYPE})
 
@@ -52,7 +59,7 @@ if(GPU)
 	set(CUDA_NVCC_FLGAS_RELEASE "-Ofast -lineinfo")
 	include_directories( ${CUDA_INCLUDE_DIRS} )
 	link_directories( /usr/local/cuda/lib64 )
-	set(LIBS "-lcuda -lcudart -lcublas -lcurand -lstdc++")
+	set(LIBS ${LIBS} "-lcuda -lcudart -lcublas -lcurand -lstdc++")
 	if(CUDNN)
 		message(STATUS "use cudnn to compile")
 		add_definitions(-DCUDNN)
@@ -76,9 +83,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMAZE_FLAG} -Wall -Wno-unknown-pragmas 
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lm -pthread -Wall -lstdc++ -std=c++0x")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lm -pthread -Wall")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(eco)
 

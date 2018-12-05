@@ -1,3 +1,7 @@
+# vscode files
+.cproject
+.project
+.settings/
 # C++ objects and libs
 
 *.slo

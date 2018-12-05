@@ -16,8 +16,8 @@ using namespace eco;
 int main(int argc, char **argv)
 {
     // Database settings
-    string databaseTypes[5] = {"Demo","VOT-2017", "TB-2015", "TLP", "UAV123"};
-    string databaseType = databaseTypes[0];//4];
+    string databaseTypes[5] = {"Demo", "VOT-2017", "TB-2015", "TLP", "UAV123"};
+    string databaseType = databaseTypes[0]; //4];
     // Read from the images ====================================================
     std::vector<float> CenterError;
     std::vector<float> Iou;
@@ -28,12 +28,12 @@ int main(int argc, char **argv)
     float AvgFps = 0.0f;
     Metrics metrics;
 
-    int f, isLost;
-    float x, y, w, h;
-    float x1, y1, x2, y2, x3, y3, x4, y4; //gt for vot
+    int f = .0f, isLost = 0;
+    float x = .0f, y = .0f, w = .0f, h = .0f;
+    float x1 = .0f, y1 = .0f, x2 = .0f, y2 = .0f, x3 = .0f, y3 = .0f, x4 = .0f, y4 = .0f; //gt for vot
     std::string s;
     std::string path;
-    ifstream *groundtruth;
+    ifstream *groundtruth = NULL;
     ostringstream osfile;
     if (databaseType == "Demo")
     {
@@ -44,11 +44,11 @@ int main(int argc, char **argv)
         size_t index = 1;
         while (gt >> tmp)
         {
-            if(tmp.find(',')<10)
+            if (tmp.find(',') < 10)
             {
                 break;
             }
-            if (index%4 == 0)
+            if (index % 4 == 0)
             {
             }
             else
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
     }
     else if (databaseType == "VOT-2017")
     {
-        string folderVOT = "girl";//"glove";//"ants3";//"drone1";//"iceskater1";//"road";//"bag";//"helicopter";
+        string folderVOT = "girl"; //"glove";//"ants3";//"drone1";//"iceskater1";//"road";//"bag";//"helicopter";
         path = "/media/elab/sdd/data/VOT/vot2017/" + folderVOT;
         // Read the groundtruth bbox
         groundtruth = new ifstream("/media/elab/sdd/data/VOT/vot2017/" + folderVOT + "/groundtruth.txt");
@@ -115,11 +115,11 @@ int main(int argc, char **argv)
         size_t index = 1;
         while (gt >> tmp)
         {
-            if(tmp.find(',')<10)
+            if (tmp.find(',') < 10)
             {
                 break;
             }
-            if (index%4 == 0)
+            if (index % 4 == 0)
             {
             }
             else
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
     }
     else if (databaseType == "TLP")
     {
-        path = "/media/elab/sdd/data/TLP/Drone1";//Sam";//Drone2"; //Bike";//Alladin";//IceSkating";//
+        path = "/media/elab/sdd/data/TLP/Drone1"; //Sam";//Drone2"; //Bike";//Alladin";//IceSkating";//
         // Read the groundtruth bbox
         groundtruth = new ifstream(path + "/groundtruth_rect.txt");
         getline(*groundtruth, s, ',');
@@ -231,8 +231,8 @@ int main(int argc, char **argv)
     Rect2f ecobbox(x, y, w, h);
     eco::EcoParameters parameters;
 
-    parameters.useCnFeature = false;
-    parameters.cn_features.fparams.tablename = "/usr/local/include/opentracker/eco/look_tables/CNnorm.txt";
+    parameters.useCnFeature = true;
+    parameters.cn_features.fparams.tablename = "./look_tables/CNnorm.txt";
     /* VOT2016_HC_settings 
     parameters.useDeepFeature = false;
     parameters.useHogFeature = true;
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
             putText(frameDraw, "ECO tracking failure detected", cv::Point(100, 80), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(255, 0, 255), 2);
             //waitKey(0);
         }
-/*
+        /*
         // Draw ground truth box
         if (databaseType == "Demo")
         {
@@ -329,8 +329,8 @@ int main(int argc, char **argv)
         }
 */
         // Display FPS on frameDraw
-        ostringstream os; 
-        os << float(fpseco); 
+        ostringstream os;
+        os << float(fpseco);
         putText(frameDraw, "FPS: " + os.str(), Point(100, 30), FONT_HERSHEY_SIMPLEX,
                 0.75, Scalar(255, 0, 255), 2);
 
@@ -451,7 +451,7 @@ int main(int argc, char **argv)
         bboxGroundtruth.width = w;
         bboxGroundtruth.height = h;
         frame = cv::imread(osfile.str().c_str(), CV_LOAD_IMAGE_UNCHANGED);
-        if(!frame.data)
+        if (!frame.data)
         {
             break;
         }
@@ -464,15 +464,15 @@ int main(int argc, char **argv)
 
         cout << "iou:" << iou << std::endl;
 
-        if(centererror <= 20)
+        if (centererror <= 20)
         {
             AvgPrecision++;
         }
-        if(iou >= 0.5)
+        if (iou >= 0.5)
         {
             SuccessRate++;
         }
-/*
+        /*
         if(f%10==0)
         {
             ecotracker.init(frame, bboxGroundtruth, parameters);
@@ -483,8 +483,8 @@ int main(int argc, char **argv)
     void *status;
     if (pthread_join(ecotracker.thread_train_, &status))
     {
-         cout << "Error:unable to join!"  << std::endl;
-         exit(-1);
+        cout << "Error:unable to join!" << std::endl;
+        exit(-1);
     }
 #endif
     AvgPrecision /= (float)(f - 2);
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
     AvgFps = std::accumulate(FpsEco.begin(), FpsEco.end(), 0.0f) / FpsEco.size();
     cout << "Frames:" << f - 2
          << " AvgPrecision:" << AvgPrecision
-         << " AvgIou:" << AvgIou 
+         << " AvgIou:" << AvgIou
          << " SuccessRate:" << SuccessRate
          << " IniFps:" << fpsecoini
          << " AvgFps:" << AvgFps << std::endl;

@@ -39,4 +39,5 @@ cv::Rect2f Metrics::intersection(const cv::Rect2f bbox,
 
 float Metrics::auc()
 {
+    return .0f;
 }

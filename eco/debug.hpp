@@ -35,17 +35,17 @@ inline void timerExample()
 	std::cout << "time: " << duration << '\n';
 }
 
-void timerExampleCV();
-inline void timerExampleCV()
-{
-	double timer = (double)cv::getTickCount();
-	float timedft = 0;
+// void timerExampleCV();
+// inline void timerExampleCV()
+// {
+// 	double timer = (double)cv::getTickCount();
+// 	float timedft = 0;
 
-	// your test code here
+// 	// your test code here
 
-	timedft = ((double)cv::getTickCount() - timer) / cv::getTickFrequency();
-	debug("time: %f", timedft);
-}
+// 	timedft = ((double)cv::getTickCount() - timer) / cv::getTickFrequency();
+// 	debug("time: %f", timedft);
+// }
 
 // Show the type of a Mat
 // Using like this:
@@ -582,37 +582,38 @@ inline void opencvTest()
 	printf("opencvTest end=======================================\n");
 }
 
-void absTest();
-inline void absTest()
-{
-	printf("absTest begin=======================================\n");
-	std::vector<float> v{0.1, 0.2};
-	//sometimes this works:
-	//```
-	//float abs = abs(1.23f);
-	//```
-	//but it use a different liberay from eigen, cause error
-	//so remember to add `std::` before!
-	float abs = std::abs(1.23f);
-	debug("False abs:%f", abs);
+// void absTest();
+// inline void absTest()
+// {
+// 	printf("absTest begin=======================================\n");
+// 	std::vector<float> v{0.1, 0.2};
+// 	//sometimes this works:
+// 	//```
+// 	//float abs = abs(1.23f);
+// 	//```
+// 	//but it use a different liberay from eigen, cause error
+// 	//so remember to add `std::` before!
+// 	float abs=.0f;
+// 	abs = std::abs(1.23f);
+// 	debug("False abs:%f", abs);
 
-	abs = std::abs(1.23f);
-	debug("True abs:%f", abs);
-	printf("absTest end=======================================\n");
-}
+// 	abs = std::abs(1.23f);
+// 	debug("True abs:%f", abs);
+// 	printf("absTest end=======================================\n");
+// }
 
-void accumulateTest();
-inline void accumulateTest()
-{
-	printf("accumulateTest begin=======================================\n");
-	std::vector<float> v{0.1, 0.2};
-	float sum = std::accumulate(v.begin(), v.end(), 0);
-	debug("False sum:%f", sum);
+// void accumulateTest();
+// inline void accumulateTest()
+// {
+// 	printf("accumulateTest begin=======================================\n");
+// 	std::vector<float> v{0.1, 0.2};
+// 	float sum = std::accumulate(v.begin(), v.end(), 0);
+// 	debug("False sum:%f", sum);
 
-	sum = std::accumulate(v.begin(), v.end(), 0.0f);
-	debug("True sum:%f", sum);
-	printf("accumulateTest end=======================================\n");
-}
+// 	sum = std::accumulate(v.begin(), v.end(), 0.0f);
+// 	debug("True sum:%f", sum);
+// 	printf("accumulateTest end=======================================\n");
+// }
 /* Compare the differences of function copyTo() and clone():
 [0, 0, 0, 0, 0]
 [0, 0, 0, 0, 0]

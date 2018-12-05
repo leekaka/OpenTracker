@@ -2,7 +2,7 @@
 #include "ffttools.hpp"
 namespace eco
 {
-cv::Mat dft(const cv::Mat img_org, const bool backwards)
+cv::Mat dft(const cv::Mat &img_org, const bool backwards)
 {
 	if (img_org.empty())
 		return cv::Mat();
@@ -113,7 +113,7 @@ cv::Mat dft(const cv::Mat img_org, const bool backwards)
 	return img;
 } // namespace eco
 
-cv::Mat fftshift(const cv::Mat img_org,
+cv::Mat fftshift(const cv::Mat &img_org,
 				 const bool rowshift,
 				 const bool colshift,
 				 const bool reverse)
@@ -163,21 +163,54 @@ cv::Mat fftshift(const cv::Mat img_org,
 }
 
 // take the real part of a complex img
-cv::Mat real(const cv::Mat img)
+cv::Mat real(const cv::Mat &img)
 {
+#if 0
 	std::vector<cv::Mat> planes;
 	cv::split(img, planes);
+	// std::cout << planes[0];
 	return planes[0];
+#else
+	int colNumber = img.cols * img.channels();
+	if (img.depth() == 6)
+	{
+		cv::Mat res(img.rows, img.cols, CV_64FC1);
+		for (int i = 0; i < img.rows; i++)
+		{
+			const double *img_data = img.ptr<double>(i);
+			double *result_data = res.ptr<double>(i);
+			for (int j = 0, k = 0; j < colNumber; k++, j += 2)
+			{
+				result_data[k] = img_data[j];
+			}
+		}
+		return res;
+	}
+	else if (img.depth() == 5)
+	{
+		cv::Mat res(img.rows, img.cols, CV_32FC1);
+		for (int i = 0; i < img.rows; i++)
+		{
+			const float *img_data = img.ptr<float>(i);
+			float *result_data = res.ptr<float>(i);
+			for (int j = 0, k = 0; j < colNumber; k++, j += 2)
+			{
+				result_data[k] = img_data[j];
+			}
+		}
+		return res;
+	}
+#endif
 }
 // take the image part of a complex img
-cv::Mat imag(const cv::Mat img)
+cv::Mat imag(const cv::Mat &img)
 {
 	std::vector<cv::Mat> planes;
 	cv::split(img, planes);
 	return planes[1];
 }
 // calculate the magnitde of a complex img
-cv::Mat magnitude(const cv::Mat img)
+cv::Mat magnitude(const cv::Mat &img)
 {
 	cv::Mat res;
 	std::vector<cv::Mat> planes;
@@ -238,25 +271,36 @@ cv::Mat complexDotMultiplicationSIMD(const cv::Mat &a, const cv::Mat &b)
 	br = (float *)alMalloc(h * w * sizeof(float), 16);
 	bi = (float *)alMalloc(h * w * sizeof(float), 16);
 	rr = (float *)alMalloc(h * w * sizeof(float), 16);
-	ri = (float *)alMalloc(h * w * sizeof(float), 16); 
+	ri = (float *)alMalloc(h * w * sizeof(float), 16);
 	//	debug("%p, %p, %p, %p, %p, %p", ar, ai, br, bi, rr, ri);
 	if (a.channels() == 1)
 	{
 		for (int i = 0; i < h; i++)
+		{
+			const float *a_data = a.ptr<float>(i);
 			for (int j = 0; j < w; j++)
 			{
-				*(ar + i * w + j) = a.at<float>(i, j);
+				*(ar + i * w + j) = a_data[j];
+				// std::cout << a_data[j] << " " << a.at<float>(i, j) << std::endl;
+				// *(ar + i * w + j) = a.at<float>(i, j);
 				*(ai + i * w + j) = 0;
 			}
+		}
 	}
 	else if (a.channels() == 2)
 	{
 		for (int i = 0; i < h; i++)
-			for (int j = 0; j < w; j++)
+		{
+			const float *a_data = a.ptr<float>(i);
+			for (int j = 0, k = 0; j < w; j++, k += 2)
 			{
-				*(ar + i * w + j) = a.at<cv::Vec2f>(i, j)[0];
-				*(ai + i * w + j) = a.at<cv::Vec2f>(i, j)[1];
+				/* *(ar + i * w + j) = a.at<cv::Vec2f>(i, j)[0];
+				*(ai + i * w + j) = a.at<cv::Vec2f>(i, j)[1]; */
+				*(ar + i * w + j) = a_data[k];
+				*(ai + i * w + j) = a_data[k + 1];
+				// cout<<a.at<cv::Vec2f>(i,j)[0]<<" "<<a.at<cv::Vec2f>(i,j)[1]<<" "<<a_data[k]<<" "<<a_data[k+1]<<endl;
 			}
+		}
 	}
 	else
 	{
@@ -266,20 +310,29 @@ cv::Mat complexDotMultiplicationSIMD(const cv::Mat &a, const cv::Mat &b)
 	if (b.channels() == 1)
 	{
 		for (int i = 0; i < h; i++)
+		{
+			const float *b_data = b.ptr<float>(i);
 			for (int j = 0; j < w; j++)
 			{
-				*(br + i * w + j) = b.at<float>(i, j);
+				*(br + i * w + j) = b_data[j];
+				// *(br + i * w + j) = b.at<float>(i, j);
 				*(bi + i * w + j) = 0;
 			}
+		}
 	}
 	else if (b.channels() == 2)
 	{
 		for (int i = 0; i < h; i++)
-			for (int j = 0; j < w; j++)
+		{
+			const float *b_data = b.ptr<float>(i);
+			for (int j = 0, k = 0; j < w; j++, k += 2)
 			{
-				*(br + i * w + j) = b.at<cv::Vec2f>(i, j)[0];
-				*(bi + i * w + j) = b.at<cv::Vec2f>(i, j)[1];
+				*(br + i * w + j) = b_data[k];
+				*(bi + i * w + j) = b_data[k + 1];
+				/* *(br + i * w + j) = b.at<cv::Vec2f>(i, j)[0];
+				*(bi + i * w + j) = b.at<cv::Vec2f>(i, j)[1]; */
 			}
+		}
 	}
 	else
 	{
@@ -315,13 +368,13 @@ cv::Mat complexDotMultiplicationSIMD(const cv::Mat &a, const cv::Mat &b)
 	}
 
 	cv::Mat res = cv::Mat::zeros(h, w, CV_32FC2);
-	for (int i = 0; i < h; i++) // for each row
+	for (int i = 0; i < h; i++)		// for each row
 		for (int j = 0; j < w; j++) // for each col
 		{
 			res.at<cv::Vec2f>(i, j)[0] = *(rr + i * w + j);
 			res.at<cv::Vec2f>(i, j)[1] = *(ri + i * w + j);
 		}
-/*
+	/*
 	wrFree(ar);
 	wrFree(ai);
 	wrFree(br);
@@ -469,8 +522,31 @@ cv::Mat complexDotMultiplicationGPU(const cv::Mat &a, const cv::Mat &b)
 #endif
 */
 // complex element-wise division
-cv::Mat complexDotDivision(const cv::Mat a, const cv::Mat b)
+cv::Mat complexDotDivision(const cv::Mat &a, const cv::Mat &b)
 {
+#if 0
+	if (b.channels() == 1) // for single channel image s
+	{
+		std::vector<cv::Mat> bb = {b, cv::Mat::zeros(b.size(), CV_32FC1)};
+		cv::merge(bb, b);
+	}
+	cv::Mat res(a.rows, b.cols, CV_32FC2);
+	//以下为采用指针访问元素
+	int colNumber = b.cols * b.channels();
+	for (int i = 0; i < a.rows; i++)
+	{
+		const float *data_a = a.ptr<float>(i);
+		const float *data_b = b.ptr<float>(i);
+		float *data_res = res.ptr<float>(i);
+		for (int j = 0; j < colNumber; j += 2)
+		{
+			cv::Complex<float> ai(data_a[j], data_a[j + 1]), bi(data_b[j], data_b[j + 1]), c;
+			c = ai / bi;
+			data_res[j] = c.re;
+			data_res[j + 1] = c.im;
+		}
+	}
+#else
 	std::vector<cv::Mat> pa;
 	std::vector<cv::Mat> pb;
 	cv::split(a, pa);
@@ -484,9 +560,11 @@ cv::Mat complexDotDivision(const cv::Mat a, const cv::Mat b)
 
 	cv::Mat res;
 	cv::merge(pres, res);
+#endif
 	return res;
 }
-// the mulitiplciation of two complex matrix
+// the mulitiplciation of two complex matrixi
+
 cv::Mat complexMatrixMultiplication(const cv::Mat &a, const cv::Mat &b)
 {
 	if (a.empty() || b.empty())
@@ -495,6 +573,7 @@ cv::Mat complexMatrixMultiplication(const cv::Mat &a, const cv::Mat &b)
 	if (a.cols != b.rows)
 		assert(0 && "error: a and b size unmatched!");
 
+#if 1
 	cv::Mat res(a.rows, b.cols, CV_32FC2);
 	for (size_t i = 0; i < (size_t)res.rows; i++)
 	{
@@ -512,11 +591,30 @@ cv::Mat complexMatrixMultiplication(const cv::Mat &a, const cv::Mat &b)
 				cv::Vec<float, 2>(rest.re, rest.im);
 		}
 	}
+#else
+	b = b.t();
+	cv::Mat res = cv::Mat::zeros(a.rows, b.rows, CV_32FC2);
+	int colNumber = a.cols * a.channels();
+	for (size_t m = 0; m < a.rows; m++)
+	{
+		float *res_data = res.ptr<float>(m);
+		const float *a_data = a.ptr<float>(m);
+		for (size_t n = 0, k = 0; n < b.rows * 2; n += 2, k++)
+		{
+			const float *b_data = b.ptr<float>(k);
+			for (size_t p = 0; p < colNumber; p += 2)
+			{
+				res_data[n] += a_data[p] * b_data[p] - a_data[p + 1] * b_data[p + 1];
+				res_data[n + 1] += a_data[p] * b_data[p + 1] + a_data[p + 1] * b_data[p];
+			}
+		}
+	}
+#endif
 	return res;
 }
 // impliment matlab c = convn(a,b) and convn(a, b, 'valid')
-cv::Mat complexConvolution(const cv::Mat a_input,
-						   const cv::Mat b_input,
+cv::Mat complexConvolution(const cv::Mat &a_input,
+						   const cv::Mat &b_input,
 						   const bool valid)
 {
 	cv::Mat res;
@@ -604,14 +702,42 @@ cv::Mat real2complex(const cv::Mat &x)
 {
 	if (x.empty() || x.channels() == 2)
 		return x;
+	cv::Mat res(x.rows, x.cols, CV_32FC2);
+#if 0
 	std::vector<cv::Mat> c = {x, cv::Mat::zeros(x.size(), CV_32FC1)};
-	cv::Mat res;
 	cv::merge(c, res);
+#else
+	int colNumber = x.cols << 1;
+	for (int i = 0; i < res.rows; i++)
+	{
+		const float *x_data = x.ptr<float>(i);
+		float *res_data = res.ptr<float>(i);
+		for (int j = 0, k = 0; j < colNumber; j += 2, k++)
+		{
+			res_data[j] = x_data[k];
+			res_data[j + 1] = 0;
+		}
+	}
+#endif
 	return res;
 }
 // mat conjugation
 cv::Mat mat_conj(const cv::Mat &org)
 {
+#if 1
+	int colNumber = org.cols * org.channels();
+	cv::Mat result(org.rows, org.cols, CV_32FC2);
+	for (int i = 0; i < org.rows; i++)
+	{
+		const float *org_data = org.ptr<float>(i);
+		float *result_data = result.ptr<float>(i);
+		for (int j = 0; j < colNumber; j += 2)
+		{
+			result_data[j] = org_data[j];
+			result_data[j + 1] = -org_data[j + 1];
+		}
+	}
+#else
 	if (org.empty())
 		return org;
 	std::vector<cv::Mat_<float>> planes;
@@ -619,6 +745,7 @@ cv::Mat mat_conj(const cv::Mat &org)
 	planes[1] = -planes[1];
 	cv::Mat result;
 	cv::merge(planes, result);
+#endif
 	return result;
 }
 // sum up all the mat elements, just for float type.
