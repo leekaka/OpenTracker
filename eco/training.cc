@@ -30,6 +30,8 @@ void EcoTrain::train_init(const ECO_FEATS &hf,
 //************************************************************************
 //     	Filter training and Projection updating(for the 1st Frame)
 //************************************************************************
+bool deltaP_init = false;
+bool lhs_init = false;
 void EcoTrain::train_joint()
 {
 	// 1. Initial Gauss-Newton optimization of the filter and projection matrix.
@@ -118,8 +120,19 @@ void EcoTrain::train_joint()
 		// Construct the right hand side vector for the projection matrix part
 		// B^H * y - lambda * P
 		vector<cv::Mat> rhs_samplef2;
-		ECO_FEATS fyf = FeatureVectorMultiply(hf_, yf_, 1);
-		vector<cv::Mat> fyf_vec = FeatureVectorization(fyf);
+		vector<cv::Mat> fyf_vec;
+		if (i == 0)
+		{
+			for (size_t m = 0; m < hf_.size(); m++)
+			{
+				fyf_vec.push_back(cv::Mat::zeros(hf_[m].size(), hf_[m][0].size().area(), CV_32FC2));
+			}
+		}
+		else
+		{
+			ECO_FEATS fyf = FeatureVectorMultiply(hf_, yf_, 1);
+			fyf_vec = FeatureVectorization(fyf);
+		}
 		for (size_t i = 0; i < init_samplesf_H.size(); i++)
 		{
 			cv::Mat fyf_vec_T = fyf_vec[i].t();
@@ -146,15 +159,19 @@ void EcoTrain::train_joint()
 		printVector_Mat(rhs_samplef2);
 */
 		// Initialize the projection matrix increment to zero
-		vector<cv::Mat> deltaP;
-		for (size_t i = 0; i < projection_matrix_.size(); i++)
+		if (!deltaP_init)
 		{
-			deltaP.push_back(cv::Mat::zeros(projection_matrix_[i].size(),
-											projection_matrix_[i].type()));
+			deltaP_init = true;
+			for (size_t i = 0; i < projection_matrix_.size(); i++)
+			{
+				deltaP.push_back(cv::Mat::zeros(projection_matrix_[i].size(),
+												projection_matrix_[i].type()));
+			}
 		}
 		ECO_EQ jointFP(hf_, deltaP);
 
 		// Do conjugate gradient
+		lhs_init = true;
 		ECO_EQ outFP = pcg_eco_joint(init_samplef_proj,
 									 reg_filter_,
 									 init_samplesf,
@@ -172,6 +189,7 @@ void EcoTrain::train_joint()
 	}
 }
 
+static bool Ax_init = false;
 EcoTrain::ECO_EQ EcoTrain::pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
 										 const vector<cv::Mat> &reg_filter,
 										 const ECO_FEATS &init_samplef,
@@ -193,12 +211,25 @@ EcoTrain::ECO_EQ EcoTrain::pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
 	float rho = 1, rho1, alpha, beta;
 
 	// calculate A(x)
-	ECO_EQ Ax = lhs_operation_joint(x,
-									init_samplef_proj,
-									reg_filter,
-									init_samplef,
-									init_samplesf_H,
-									init_hf);
+	ECO_EQ Ax;
+	if (!Ax_init)
+	{
+		Ax = x;
+		Ax_init = true;
+	}
+	else
+	{
+		Ax = lhs_operation_joint(x,
+								 init_samplef_proj,
+								 reg_filter,
+								 init_samplef,
+								 init_samplesf_H,
+								 init_hf);
+	}
+	// cout << Ax.up_part_.size() << " " << Ax.up_part_[0].size() << " " << Ax.up_part_[0][0].rows << " " << Ax.up_part_[0][0].cols << " " << Ax.up_part_[0][0].type() << endl;
+	// cout << x.up_part_.size() << " " << x.up_part_[0].size() << " " << x.up_part_[0][0].rows << " " << x.up_part_[0][0].cols << " " << x.up_part_[0][0].type() << endl;
+	// cout << Ax.low_part_.size() << " " << x.low_part_[0].rows << " " << x.low_part_[0].cols << " " << x.low_part_[0].type() << endl;
+	// cout << x.low_part_.size() << " " << x.low_part_[0].rows << " " << x.low_part_[0].cols << " " << x.low_part_[0].type() << endl;
 	ECO_EQ r = rhs_samplef; // rhs_samplef is const, needs to seperate to 2
 	r = r - Ax;
 
@@ -367,7 +398,7 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 			// add part needed for convolution
 			int c = fAndDel[i][j].cols;
 			cv::Mat hf_conv;
-			if (reg_pad == 0) // 
+			if (reg_pad == 0) //
 			{
 				hf_conv = fAndDel[i][j];
 			}
@@ -406,7 +437,9 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 		//temp.copyTo(BP(roi));
 		BP(roi) = BP_cell[i] + BP(roi);
 	}
-
+	// cout << scores.size() << " " << scores[1].rows << " " << scores[1].cols << " " << scores[1].type() << endl;
+	// cout << " " << BP.rows << " " << BP.cols << " " << BP.type() << endl;
+	// cout << BP << endl;
 	// A^H * B * dP
 	ECO_FEATS fBP, shBP;
 	for (size_t i = 0; i < (size_t)num_features; i++)
@@ -439,18 +472,31 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 		// the index of last frequency colunm starts
 		int fi = hf_out1[i][0].rows * (hf_out1[i][0].cols - 1) + 0;
 
-		// B^H * BP
+		// B^H * B * dP + λ * dp
 		int c_len = XH[i].cols;
-		cv::Mat part1 = XH[i] * FeatureVectorization(fBP)[i].t() -
-						XH[i].colRange(fi, c_len) * FeatureVectorization(fBP)[i].colRange(fi, c_len).t();
-		part1 = 2 * real2complex(real(part1)) +
-				params_.projection_reg * deltaP[i];
+		cv::Mat part1;
+		if (lhs_init)
+		{
+			lhs_init = false;
+			part1 = hf.low_part_[i];
+		}
+		else
+		{
+			part1 = XH[i] * FeatureVectorization(fBP)[i].t() -
+					XH[i].colRange(fi, c_len) * FeatureVectorization(fBP)[i].colRange(fi, c_len).t();
+			part1 = 2 * real2complex(real(part1)) +
+					params_.projection_reg * deltaP[i];
+		}
 
 		// Compute proj matrix part : B^H * A * f
 		cv::Mat part2 = XH[i] * FeatureVectorization(shBP)[i].t() -
 						XH[i].colRange(fi, c_len) * FeatureVectorization(shBP)[i].colRange(fi, c_len).t();
 		part2 = 2 * real2complex(real(part2));
 
+		// cout << hf.low_part_.size() << " " << hf.low_part_[i].rows << " " << hf.low_part_[i].cols << " " << hf.low_part_[i].type() << endl;
+		// cout << part1.rows << " " << part1.cols << " " << part1.type() << endl;
+		// cout << hf.low_part_[i] << endl;
+		// cout << part1 << endl;
 		hf_out2.push_back(part1 + part2); // B^H * A * f + B^H * B * dp
 	}
 

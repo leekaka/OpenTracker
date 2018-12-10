@@ -68,7 +68,7 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	init_parameters(paramters);
 	printf("max_score_threshhold: %f\n", params_.max_score_threshhold);
 
-	cout<<endl;
+	cout << endl;
 	// Calculate search area and initial scale factor
 	float search_area = rect.area() * std::pow(params_.search_area_scale, 2);
 	debug("search_area:%f", search_area);
@@ -311,8 +311,10 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	for (size_t i = 0; i < xlf_porj.size(); i++) // for each feature
 	{
 		hf.push_back(vector<cv::Mat>(xlf_porj[i].size(), cv::Mat::zeros(xlf_porj[i][0].size(), CV_32FC2)));
-		hf_inc.push_back(vector<cv::Mat>(xlf_porj[i].size(), cv::Mat::zeros(xlf_porj[i][0].size(), CV_32FC2)));
+		// hf_inc.push_back(vector<cv::Mat>(xlf_porj[i].size(), cv::Mat::zeros(xlf_porj[i][0].size(), CV_32FC2)));
 	}
+	hf_inc.assign(hf.begin(), hf.end());
+	// copy(hf.begin(), hf.end(), hf_inc.begin());
 	for (size_t i = 0; i < hf.size(); i++)
 	{
 		debug("hf: %lu, %lu, %d x %d", i, hf[i].size(), hf[i][0].rows, hf[i][0].cols);
@@ -688,7 +690,7 @@ void ECO::init_parameters(const eco::EcoParameters &parameters)
 	params_.cnn_features.fparams.proto = parameters.cnn_features.fparams.proto;
 	params_.cnn_features.fparams.model = parameters.cnn_features.fparams.model;
 	params_.cnn_features.fparams.mean_file = parameters.cnn_features.fparams.mean_file;
-#endif	
+#endif
 	params_.hog_features.fparams.cell_size = parameters.hog_features.fparams.cell_size;
 	params_.cn_features.fparams.tablename = parameters.cn_features.fparams.tablename;
 	params_.ic_features.fparams.tablename = parameters.ic_features.fparams.tablename;

@@ -34,7 +34,7 @@ class EcoTrain
 		ECO_EQ() {}
 		ECO_EQ(ECO_FEATS up_part, std::vector<cv::Mat> low_part) : up_part_(up_part), low_part_(low_part) {}
 
-		ECO_FEATS up_part_;			    // this is f + delta(f)
+		ECO_FEATS up_part_;				// this is f + delta(f)
 		std::vector<cv::Mat> low_part_; // this is delta(P)
 
 		ECO_EQ operator+(const ECO_EQ data);
@@ -57,20 +57,20 @@ class EcoTrain
 	void train_joint();
 
 	ECO_EQ pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
-						   const vector<cv::Mat> &reg_filter,
-						   const ECO_FEATS &init_samplef,
-						   const vector<cv::Mat> &init_samplesf_H,
-						   const ECO_FEATS &init_hf,
-						   const ECO_EQ &rhs_samplef,
-						   const ECO_EQ &diag_M, // preconditionor
-						   const ECO_EQ &hf);
+						 const vector<cv::Mat> &reg_filter,
+						 const ECO_FEATS &init_samplef,
+						 const vector<cv::Mat> &init_samplesf_H,
+						 const ECO_FEATS &init_hf,
+						 const ECO_EQ &rhs_samplef,
+						 const ECO_EQ &diag_M, // preconditionor
+						 const ECO_EQ &hf);
 
 	ECO_EQ lhs_operation_joint(const ECO_EQ &hf,
-								  const ECO_FEATS &samplesf,
-								  const vector<cv::Mat> &reg_filter,
-								  const ECO_FEATS &init_samplef,
-								  const vector<cv::Mat> &XH,
-								  const ECO_FEATS &init_hf);
+							   const ECO_FEATS &samplesf,
+							   const vector<cv::Mat> &reg_filter,
+							   const ECO_FEATS &init_samplef,
+							   const vector<cv::Mat> &XH,
+							   const ECO_FEATS &init_hf);
 	// Only filter training(for tracker update)===============================
 	void train_filter(const vector<ECO_FEATS> &samplesf,
 					  const vector<float> &sample_weights,
@@ -108,6 +108,7 @@ class EcoTrain
 
 	EcoParameters params_;
 	STATE state_;
+	vector<cv::Mat> deltaP;
 }; // end of class
 } // namespace eco
 #endif

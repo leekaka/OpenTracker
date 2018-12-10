@@ -312,7 +312,7 @@ vector<cv::Mat> FeatureExtractor::get_hog_features_simd(const vector<cv::Mat> im
 	return hog_feats;
 }
 #else
-vector<cv::Mat> FeatureExtractor::get_hog_features(const vector<cv::Mat> ims)
+vector<cv::Mat> FeatureExtractor::get_hog_features(const vector<cv::Mat> &ims)
 {
 	if (ims.empty())
 	{
@@ -408,7 +408,7 @@ vector<cv::Mat> FeatureExtractor::hog_feature_normalization(vector<cv::Mat> &hog
 }
 
 //=========================================================================
-vector<cv::Mat> FeatureExtractor::get_cn_features(const vector<cv::Mat> ims)
+vector<cv::Mat> FeatureExtractor::get_cn_features(const vector<cv::Mat> &ims)
 {
 	if (ims.empty())
 	{
@@ -429,26 +429,43 @@ vector<cv::Mat> FeatureExtractor::get_cn_features(const vector<cv::Mat> ims)
 			ims_f /= den;
 			vector<cv::Mat> ims_vector;
 			cv::split(ims_f, ims_vector);
+#if 1
 			for (int i = 0; i < ims_f.rows; i++)
 				for (int j = 0; j < ims_f.cols; j++)
 					for (int k = 0; k < 3; k++)
 					{
 						ims_vector[k].at<float>(i, j) = std::floor(ims_vector[k].at<float>(i, j));
 					}
+#else
+			for (int k = 0; k < 3; k++)
+			{
+				for (int i = 0; i < ims_f.rows; i++)
+				{
+					float *ims_vector_data = ims_vector[k].ptr<float>(i);
+					for (int j = 0; j < ims_f.cols; j++)
+					{
+
+						ims_vector_data[j] = std::floor(ims_vector_data[j]);
+					}
+				}
+			}
+
+#endif
 			// matlab: RGB, opencv:BGR
 			index_im = ims_vector[2] + fac * ims_vector[1] + fac * fac * ims_vector[0];
 			//printMat(index_im);
 			//showmat1ch(index_im, 2);
 		}
+
 		else
 		{
 			ims[i].convertTo(ims_f, CV_32FC1);
 			ims_f /= den;
 			for (int i = 0; i < ims_f.rows; i++)
 				for (int j = 0; j < ims_f.cols; j++)
-					{
-						ims_f.at<float>(i, j) = std::floor(ims_f.at<float>(i, j));
-					}
+				{
+					ims_f.at<float>(i, j) = std::floor(ims_f.at<float>(i, j));
+				}
 			index_im = ims_f;
 		}
 

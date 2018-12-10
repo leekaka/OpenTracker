@@ -186,7 +186,7 @@ float FeatureComputeInnerProduct(const ECO_FEATS &feat1, const ECO_FEATS &feat2)
 		for (size_t j = 0; j < feat1[i].size(); j++)
 		{
 			cv::Mat feat2_conj = mat_conj(feat2[i][j]);
-			dist += mat_sum_f(real(complexDotMultiplication(feat1[i][j], 
+			dist += mat_sum_f(real(complexDotMultiplication(feat1[i][j],
 															feat2_conj)));
 		}
 	}
@@ -223,9 +223,9 @@ ECO_FEATS FeautreComputePower2(const ECO_FEATS &feats)
 			{
 				for (size_t c = 0; c < (size_t)feats[i][j].cols; c++)
 				{
-					temp.at<COMPLEX>(r, c)[0] = 
-							std::pow(temp.at<COMPLEX>(r, c)[0], 2) + 
-							std::pow(temp.at<COMPLEX>(r, c)[1], 2);
+					temp.at<COMPLEX>(r, c)[0] =
+						std::pow(temp.at<COMPLEX>(r, c)[0], 2) +
+						std::pow(temp.at<COMPLEX>(r, c)[1], 2);
 					temp.at<COMPLEX>(r, c)[1] = 0;
 				}
 			}
@@ -238,14 +238,14 @@ ECO_FEATS FeautreComputePower2(const ECO_FEATS &feats)
 // sum up for each feature // gpu_implemented
 // DotMultiply for each dimension of each feature and
 // sum up all the dimensions for each feature
-std::vector<cv::Mat> FeatureComputeScores(const ECO_FEATS &x, 
+std::vector<cv::Mat> FeatureComputeScores(const ECO_FEATS &x,
 										  const ECO_FEATS &f)
 {
 	std::vector<cv::Mat> res;
 	ECO_FEATS res_temp = FeatureDotMultiply(x, f);
 	for (size_t i = 0; i < res_temp.size(); i++) // for each feature
 	{
-		cv::Mat temp(cv::Mat::zeros(res_temp[i][0].size(), 
+		cv::Mat temp(cv::Mat::zeros(res_temp[i][0].size(),
 									res_temp[i][0].type()));
 		for (size_t j = 0; j < res_temp[i].size(); j++) // for each dimension
 		{
@@ -268,7 +268,7 @@ std::vector<cv::Mat> FeatureVectorization(const ECO_FEATS &x)
 		for (size_t j = 0; j < x[i].size(); j++)
 		{
 			cv::Mat temp2 = x[i][j].t();
-			temp.push_back(cv::Mat(1, x[i][j].size().area(), 
+			temp.push_back(cv::Mat(1, x[i][j].size().area(),
 								   CV_32FC2, temp2.data));
 		}
 		res.push_back(temp);
@@ -299,7 +299,7 @@ ECO_FEATS FeatureVectorMultiply(const ECO_FEATS &x,
 	return res;
 }
 
-// features operation 
+// features operation
 ECO_FEATS FeatureDotMultiply(const ECO_FEATS &a, const ECO_FEATS &b)
 {
 	ECO_FEATS res;

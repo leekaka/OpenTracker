@@ -48,12 +48,12 @@ class FeatureExtractor
 #ifdef USE_SIMD
 	vector<cv::Mat> get_hog_features_simd(const vector<cv::Mat> ims);
 #else
-	vector<cv::Mat> get_hog_features(const vector<cv::Mat> ims);
+	vector<cv::Mat> get_hog_features(const vector<cv::Mat> &ims);
 #endif
 	vector<cv::Mat> hog_feature_normalization(vector<cv::Mat> &hog_feat_maps);
 	inline vector<cv::Mat> get_hog_feats() const { return hog_feat_maps_; }
 
-	vector<cv::Mat> get_cn_features(const vector<cv::Mat> ims);
+	vector<cv::Mat> get_cn_features(const vector<cv::Mat> &ims);
 	vector<cv::Mat> cn_feature_normalization(vector<cv::Mat> &cn_feat_maps);
 	inline vector<cv::Mat> get_cn_feats() const { return cn_feat_maps_; }
 

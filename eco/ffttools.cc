@@ -14,6 +14,7 @@ cv::Mat dft(const cv::Mat &img_org, const bool backwards)
 #ifdef USE_FFTW
 	size_t cols = img_org.cols;
 	size_t rows = img_org.rows;
+	cout << cols << " " << rows << endl;
 	size_t size = cols * rows;
 	fftw_complex *in, *out;
 	fftw_plan p;
