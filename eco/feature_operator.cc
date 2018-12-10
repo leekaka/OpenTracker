@@ -5,9 +5,11 @@ namespace eco
 ECO_FEATS do_dft(const ECO_FEATS &xlw)
 {
 	ECO_FEATS xlf;
+	xlf.reserve(xlw.size());
 	for (size_t i = 0; i < xlw.size(); i++)
 	{
 		std::vector<cv::Mat> temp;
+		temp.reserve(xlw[i].size());
 		for (size_t j = 0; j < xlw[i].size(); j++)
 		{
 			int size = xlw[i][j].rows;
@@ -34,9 +36,11 @@ ECO_FEATS do_dft(const ECO_FEATS &xlw)
 ECO_FEATS do_windows(const ECO_FEATS &xl, vector<cv::Mat> &cos_win)
 {
 	ECO_FEATS xlw;
+	xlw.reserve(xl.size());
 	for (size_t i = 0; i < xl.size(); i++) // for each feature
 	{
 		vector<cv::Mat> temp;
+		temp.reserve(xl[i].size());
 		//debug("xl[%lu]: %lu", i, xl[i].size()); //96, 512, 31
 		for (size_t j = 0; j < xl[i].size(); j++) // for the dimensions fo the feature
 			temp.push_back(cos_win[i].mul(xl[i][j]));
@@ -68,6 +72,7 @@ vector<cv::Mat> init_projection_matrix(const ECO_FEATS &init_sample,
 									   const vector<int> &feature_dim)
 {
 	vector<cv::Mat> result;
+	result.reserve(init_sample.size());
 	for (size_t i = 0; i < init_sample.size(); i++) // for each feature
 	{
 		// vectorize mat init_sample
@@ -85,6 +90,7 @@ vector<cv::Mat> init_projection_matrix(const ECO_FEATS &init_sample,
 	//printMat(result[0]); // 3844 x 31
 
 	vector<cv::Mat> proj_mat;
+	proj_mat.reserve(result.size());
 	// do SVD and dimension reduction for each feature
 	for (size_t i = 0; i < result.size(); i++)
 	{
@@ -124,6 +130,7 @@ ECO_FEATS FeatureProjection(const ECO_FEATS &x, const std::vector<cv::Mat> &proj
 
 		// transform back to standard formation
 		std::vector<cv::Mat> temp;
+		temp.reserve(res_temp.cols);
 		for (size_t j = 0; j < (size_t)res_temp.cols; j++) // for each channel of reduced feature
 		{
 			cv::Mat temp2 = res_temp.col(j); // just a header of the col, no data copied
@@ -146,7 +153,7 @@ ECO_FEATS FeatureProjectionMultScale(const ECO_FEATS &x, const std::vector<cv::M
 		int org_dim = projection_matrix[i].rows;
 		int numScales = x[i].size() / org_dim;
 		std::vector<cv::Mat> temp;
-
+		temp.reserve(numScales);
 		for (size_t s = 0; s < (size_t)numScales; s++) // for every scale
 		{
 			cv::Mat x_mat;
@@ -215,6 +222,7 @@ ECO_FEATS FeautreComputePower2(const ECO_FEATS &feats)
 	for (size_t i = 0; i < feats.size(); i++) // for each feature
 	{
 		std::vector<cv::Mat> feat_vec;
+		feat_vec.reserve(feats[i].size());
 		for (size_t j = 0; j < (size_t)feats[i].size(); j++) // for each dimension
 		{
 			cv::Mat temp(feats[i][0].size(), CV_32FC2);
@@ -243,6 +251,7 @@ std::vector<cv::Mat> FeatureComputeScores(const ECO_FEATS &x,
 {
 	std::vector<cv::Mat> res;
 	ECO_FEATS res_temp = FeatureDotMultiply(x, f);
+	res.reserve(res_temp.size());
 	for (size_t i = 0; i < res_temp.size(); i++) // for each feature
 	{
 		cv::Mat temp(cv::Mat::zeros(res_temp[i][0].size(),
@@ -262,6 +271,7 @@ std::vector<cv::Mat> FeatureVectorization(const ECO_FEATS &x)
 		return std::vector<cv::Mat>();
 
 	std::vector<cv::Mat> res;
+	res.reserve(x.size());
 	for (size_t i = 0; i < x.size(); i++)
 	{
 		cv::Mat temp;
@@ -287,6 +297,7 @@ ECO_FEATS FeatureVectorMultiply(const ECO_FEATS &x,
 	for (size_t i = 0; i < x.size(); i++)
 	{
 		vector<cv::Mat> temp;
+		temp.reserve(x[i].size());
 		for (size_t j = 0; j < x[i].size(); j++)
 		{
 			if (_conj)
@@ -309,6 +320,7 @@ ECO_FEATS FeatureDotMultiply(const ECO_FEATS &a, const ECO_FEATS &b)
 	for (size_t i = 0; i < a.size(); i++)
 	{
 		std::vector<cv::Mat> temp;
+		temp.reserve(a[i].size());
 		for (size_t j = 0; j < a[i].size(); j++)
 		{
 			temp.push_back(complexDotMultiplication(a[i][j], b[i][j]));
@@ -326,6 +338,7 @@ ECO_FEATS FeatureDotDivide(const ECO_FEATS &a, const ECO_FEATS &b)
 	for (size_t i = 0; i < a.size(); i++)
 	{
 		std::vector<cv::Mat> temp;
+		temp.reserve(a[i].size());
 		for (size_t j = 0; j < a[i].size(); j++)
 		{
 			temp.push_back(complexDotDivision(a[i][j], b[i][j]));

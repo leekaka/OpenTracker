@@ -25,24 +25,25 @@ class SampleUpdate
 			  const size_t nSamples,
 			  const float learning_rate);
 
-	void update_sample_space_model(const ECO_FEATS &new_train_sample); 
+	void update_sample_space_model(const ECO_FEATS &new_train_sample);
 
 	void update_distance_matrix(cv::Mat &gram_vector, float new_sample_norm,
 								int id1, int id2, float w1, float w2);
 
-	inline cv::Mat find_gram_vector(const ECO_FEATS &new_train_sample) 
+	inline cv::Mat find_gram_vector(const ECO_FEATS &new_train_sample)
 	{
 		cv::Mat result(cv::Size(1, nSamples_), CV_32FC2);
 		for (size_t i = 0; i < (size_t)result.rows; i++) // init to INF;
 			result.at<cv::Vec<float, 2>>(i, 0) = cv::Vec<float, 2>(INF, 0);
 
 		std::vector<float> distance_vector;
+		distance_vector.reserve(num_training_samples_);
 		for (size_t i = 0; i < num_training_samples_; i++) // calculate the distance;
-			distance_vector.push_back(2 * 
-			FeatureComputeInnerProduct(samples_f_[i], new_train_sample));
+			distance_vector.push_back(2 *
+									  FeatureComputeInnerProduct(samples_f_[i], new_train_sample));
 
 		for (size_t i = 0; i < distance_vector.size(); i++)
-			result.at<cv::Vec<float, 2>>(i, 0) = 
+			result.at<cv::Vec<float, 2>>(i, 0) =
 				cv::Vec<float, 2>(distance_vector[i], 0);
 
 		return result;

@@ -109,6 +109,7 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	output_index_ = 0;
 	output_size_ = 0;
 	// The size of the label function DFT. Equal to the maximum filter size
+	filter_size_.reserve(feature_size_.size());
 	for (size_t i = 0; i != feature_size_.size(); ++i)
 	{
 		size_t size = feature_size_[i].width + (feature_size_[i].width + 1) % 2; //=63, to make it as an odd number;
@@ -121,6 +122,8 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	debug("output_index_:%lu, output_size_:%lu", output_index_, output_size_);
 
 	// Compute the 2d Fourier series indices by kx and ky.
+	ky_.reserve(filter_size_.size());
+	kx_.reserve(filter_size_.size());
 	for (size_t i = 0; i < filter_size_.size(); ++i) // for each filter
 	{
 		cv::Mat_<float> tempy(filter_size_[i].height, 1, CV_32FC1);
@@ -148,6 +151,8 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 	// Construct cosine window
 	cos_window();
 	// Compute Fourier series of interpolation function, refer C-COT
+	interp1_fs_.reserve(filter_size_.size());
+	interp2_fs_.reserve(filter_size_.size());
 	for (size_t i = 0; i < filter_size_.size(); ++i) // for each feature
 	{
 		cv::Mat interp1_fs1, interp2_fs1;
@@ -164,6 +169,8 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 		//showmat2channels(interp2_fs1, 2);
 	}
 	// Construct spatial regularization filter, refer SRDCF
+	reg_filter_.reserve(filter_size_.size());
+	reg_energy_.reserve(filter_size_.size());
 	for (size_t i = 0; i < filter_size_.size(); i++) // for each feature
 	{
 		cv::Mat temp_d = get_regularization_filter(img_support_size_,
@@ -308,6 +315,8 @@ void ECO::init(cv::Mat &im, const cv::Rect2f &rect, const eco::EcoParameters &pa
 
 	// 10. Initialize filter and it's derivative.
 	ECO_FEATS hf, hf_inc;
+	hf.reserve(xlf_porj.size());
+	hf_inc.reserve(xlf_porj.size());
 	for (size_t i = 0; i < xlf_porj.size(); i++) // for each feature
 	{
 		hf.push_back(vector<cv::Mat>(xlf_porj[i].size(), cv::Mat::zeros(xlf_porj[i][0].size(), CV_32FC2)));
@@ -403,6 +412,7 @@ bool ECO::update(const cv::Mat &frame, cv::Rect2f &roi)
 
 	// 6: Compute the scores in Fourier domain for different scales of target
 	vector<cv::Mat> scores_fs_sum;
+	scores_fs_sum.reserve(scale_factors_.size());
 	for (size_t i = 0; i < scale_factors_.size(); i++) // for each scale
 		scores_fs_sum.push_back(cv::Mat::zeros(filter_size_[output_index_], CV_32FC2));
 	for (size_t i = 0; i < xtf_proj.size(); i++) // for each feature
@@ -456,9 +466,11 @@ bool ECO::update(const cv::Mat &frame, cv::Rect2f &roi)
 	//**************************************************************************
 	// 1: Get the sample calculated in localization
 	ECO_FEATS xlf_proj;
+	xlf_proj.reserve(xtf_proj.size());
 	for (size_t i = 0; i < xtf_proj.size(); ++i)
 	{
 		std::vector<cv::Mat> tmp;
+		tmp.reserve(projection_matrix_[i].cols);
 		int start_ind = scale_change_factor * projection_matrix_[i].cols;
 		int end_ind = (scale_change_factor + 1) * projection_matrix_[i].cols;
 		for (size_t j = start_ind; j < (size_t)end_ind; ++j)
@@ -553,7 +565,7 @@ bool ECO::update(const cv::Mat &frame, cv::Rect2f &roi)
 
 		// Apply the colormap
 		std::vector<cv::Mat> scores_sum; //= scores_fs_sum;
-
+		scores_sum.reserve(scores_fs_sum.size());
 		// Do inverse fft to the scores in the Fourier domain back to the spacial domain
 		for (size_t i = 0; i < scores_fs_sum.size(); ++i)
 		{
@@ -1036,6 +1048,7 @@ void ECO::yf_gaussian() // real part of (9) in paper C-COT
 
 	double tmp1 = M_PI * sig_y / output_size_;
 	double tmp2 = std::sqrt(2 * M_PI) * sig_y / output_size_;
+	yf_.reserve(ky_.size());
 	for (unsigned int i = 0; i < ky_.size(); i++) // for each filter
 	{
 		// 2 dimension version of (9)
@@ -1073,6 +1086,7 @@ void ECO::yf_gaussian() // real part of (9) in paper C-COT
 
 void ECO::cos_window()
 {
+	cos_window_.reserve(feature_size_.size());
 	for (size_t i = 0; i < feature_size_.size(); i++)
 	{
 		/*
@@ -1106,6 +1120,7 @@ void ECO::cos_window()
 ECO_FEATS ECO::interpolate_dft(const ECO_FEATS &xlf, vector<cv::Mat> &interp1_fs, vector<cv::Mat> &interp2_fs)
 {
 	ECO_FEATS result;
+	result.reserve(xlf.size());
 	for (size_t i = 0; i < xlf.size(); i++)
 	{
 		cv::Mat interp1_fs_mat =
@@ -1113,7 +1128,7 @@ ECO_FEATS ECO::interpolate_dft(const ECO_FEATS &xlf, vector<cv::Mat> &interp1_fs
 		cv::Mat interp2_fs_mat =
 			subwindow(interp2_fs[i], cv::Rect(cv::Point(0, 0), cv::Size(interp2_fs[i].cols, interp2_fs[i].cols)), IPL_BORDER_REPLICATE);
 		vector<cv::Mat> temp;
-
+		temp.reserve(xlf[i].size());
 		for (size_t j = 0; j < xlf[i].size(); j++)
 		{
 			temp.push_back(complexDotMultiplication(
@@ -1128,9 +1143,11 @@ ECO_FEATS ECO::interpolate_dft(const ECO_FEATS &xlf, vector<cv::Mat> &interp1_fs
 ECO_FEATS ECO::compact_fourier_coeff(const ECO_FEATS &xf)
 {
 	ECO_FEATS result;
+	result.reserve(xf.size());
 	for (size_t i = 0; i < xf.size(); i++) // for each feature
 	{
 		vector<cv::Mat> temp;
+		temp.reserve(xf[i].size());
 		for (size_t j = 0; j < xf[i].size(); j++) // for each dimension
 			temp.push_back(xf[i][j].colRange(0, (xf[i][j].cols + 1) / 2));
 		result.push_back(temp);
@@ -1142,18 +1159,21 @@ ECO_FEATS ECO::compact_fourier_coeff(const ECO_FEATS &xf)
 ECO_FEATS ECO::full_fourier_coeff(const ECO_FEATS &xf)
 {
 	ECO_FEATS res;
-	for (size_t i = 0; i < xf.size(); i++) // for each feature
-	{
-		vector<cv::Mat> tmp;
-		for (size_t j = 0; j < xf[i].size(); j++) // for each dimension
+	res.reserve(xf.size());
+	for (size_t i = 0; i < xf.size(); i++)	 // for each feature
+		for (size_t i = 0; i < xf.size(); i++) // for each feature
 		{
-			cv::Mat temp = xf[i][j].colRange(0, xf[i][j].cols - 1).clone();
-			rot90(temp, 3);
-			cv::hconcat(xf[i][j], mat_conj(temp), temp);
-			tmp.push_back(temp);
+			vector<cv::Mat> tmp;
+			tmp.reserve(xf[i].size());
+			for (size_t j = 0; j < xf[i].size(); j++) // for each dimension
+			{
+				cv::Mat temp = xf[i][j].colRange(0, xf[i][j].cols - 1).clone();
+				rot90(temp, 3);
+				cv::hconcat(xf[i][j], mat_conj(temp), temp);
+				tmp.push_back(temp);
+			}
+			res.push_back(tmp);
 		}
-		res.push_back(tmp);
-	}
 
 	return res;
 }
@@ -1162,6 +1182,7 @@ vector<cv::Mat> ECO::project_mat_energy(vector<cv::Mat> proj,
 										vector<cv::Mat> yf)
 {
 	vector<cv::Mat> result;
+	result.reserve(yf.size());
 	for (size_t i = 0; i < yf.size(); i++)
 	{
 		cv::Mat temp(proj[i].size(), CV_32FC1);
@@ -1209,6 +1230,7 @@ ECO_FEATS ECO::shift_sample(ECO_FEATS &xf,
 			subwindow(shift_exp_x, cv::Rect(cv::Point(0, 0), xf[i][0].size()), IPL_BORDER_REPLICATE);
 
 		vector<cv::Mat> tmp;
+		tmp.reserve(xf[i].size());
 		for (size_t j = 0; j < xf[i].size(); j++) // for each dimension of the feature, do complex element-wise multiplication
 		{
 			tmp.push_back(complexDotMultiplication(

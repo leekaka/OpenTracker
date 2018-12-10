@@ -42,6 +42,7 @@ void SampleUpdate::init(const std::vector<cv::Size> &filter,
 		for (size_t j = 0; j < (size_t)feature_dim.size(); j++) // for each feature
 		{
 			std::vector<cv::Mat> temp_single_feat;
+			temp_single_feat.reserve(feature_dim[j]);
 			for (size_t i = 0; i < (size_t)feature_dim[j]; i++) // for each dimension of the feature
 				temp_single_feat.push_back(cv::Mat::zeros(
 					cv::Size((filter[j].height + 1) / 2, filter[j].width),

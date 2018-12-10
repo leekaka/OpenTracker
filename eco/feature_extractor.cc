@@ -191,6 +191,7 @@ vector<cv::Mat> FeatureExtractor::get_hog_features_simd(const vector<cv::Mat> im
 	}
 
 	vector<cv::Mat> hog_feats;
+	hog_feats.reserve(ims.size());
 	for (unsigned int k = 0; k < ims.size(); k++)
 	{
 		int h, w, d, binSize, nOrients, softBin, nDim, hb, wb, useHog;
@@ -417,6 +418,7 @@ vector<cv::Mat> FeatureExtractor::get_cn_features(const vector<cv::Mat> &ims)
 	//printMat(ims[0]);
 	//showmat3ch(ims[0], 0);
 	vector<cv::Mat> cn_feats;
+	cn_feats.reserve(ims.size());
 	float den = 8.0f, fac = 32.0f;
 	for (size_t i = 0; i < ims.size(); i++)
 	{

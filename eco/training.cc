@@ -54,6 +54,7 @@ void EcoTrain::train_joint()
 	for (size_t i = 0; i < xlf_.size(); i++) // for each feature
 	{
 		cv::Mat temp;
+		temp.reserve(xlf_[i].size());
 		for (size_t j = 0; j < xlf_[i].size(); j++) // for each dimension
 		{
 			cv::Mat temp_h = xlf_[i][j].t();
@@ -79,6 +80,7 @@ void EcoTrain::train_joint()
 		mean = mean / sample_energy_[i].size();
 
 		vector<cv::Mat> temp_vec;
+		temp_vec.reserve(sample_energy_[i].size());
 		for (size_t j = 0; j < sample_energy_[i].size(); j++) // for dimensions
 		{
 			cv::Mat temp = (1 - params_.precond_data_param) * mean + params_.precond_data_param * sample_energy_[i][j];
@@ -133,6 +135,7 @@ void EcoTrain::train_joint()
 			ECO_FEATS fyf = FeatureVectorMultiply(hf_, yf_, 1);
 			fyf_vec = FeatureVectorization(fyf);
 		}
+		rhs_samplef2.reserve(init_samplesf_H.size());
 		for (size_t i = 0; i < init_samplesf_H.size(); i++)
 		{
 			cv::Mat fyf_vec_T = fyf_vec[i].t();
@@ -343,6 +346,7 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 	// 1: Get sizes of each feature----------------------------------------
 	int num_features = fAndDel.size();
 	vector<cv::Size> filter_sz;
+	filter_sz.reserve(num_features);
 	for (size_t i = 0; i < (size_t)num_features; i++)
 	{
 		filter_sz.push_back(fAndDel[i][0].size());
@@ -371,9 +375,11 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 
 	// 3: multiply with the transpose : A^H * A * f----------------------------
 	ECO_FEATS hf_out1;
+	hf_out1.reserve(num_features);
 	for (size_t i = 0; i < (size_t)num_features; i++) // for each feature
 	{
 		vector<cv::Mat> tmp;
+		tmp.reserve(fAndDel[i].size());
 		for (size_t j = 0; j < fAndDel[i].size(); j++) // for each dimension
 		{
 			int pad = (output_sz.height - scores[i].rows) / 2;
@@ -442,9 +448,13 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 	// cout << BP << endl;
 	// A^H * B * dP
 	ECO_FEATS fBP, shBP;
+	fBP.reserve(num_features);
+	shBP.reserve(num_features);
 	for (size_t i = 0; i < (size_t)num_features; i++)
 	{
 		vector<cv::Mat> vfBP, vshBP;
+		vfBP.reserve(hf_out1[i].size());
+		vshBP.reserve(hf_out1[i].size());
 		for (size_t j = 0; j < hf_out1[i].size(); j++)
 		{
 			int pad = (output_sz.height - hf_out1[i][0].rows) / 2;
@@ -467,6 +477,7 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 	}
 
 	std::vector<cv::Mat> hf_out2;
+	hf_out2.reserve(num_features);
 	for (size_t i = 0; i < (size_t)num_features; i++)
 	{
 		// the index of last frequency colunm starts
@@ -535,6 +546,7 @@ void EcoTrain::train_filter(const vector<ECO_FEATS> &samplesf,
 		mean = mean / sample_energy[i].size();
 
 		vector<cv::Mat> temp_vec;
+		temp_vec.reserve(sample_energy[i].size());
 		for (size_t j = 0; j < sample_energy[i].size(); j++)
 		{
 			cv::Mat temp = (1 - params_.precond_data_param) * mean + params_.precond_data_param * sample_energy[i][j];
@@ -718,7 +730,8 @@ ECO_FEATS EcoTrain::lhs_operation_filter(const ECO_FEATS &hf,
 			  hf[i][0].rows, hf[i][0].cols);
 	}
 */
-	vector<cv::Mat> sh;							 // sum of all the features for each sample
+	vector<cv::Mat> sh; // sum of all the features for each sample
+	sh.reserve(samplesf.size());
 	for (size_t s = 0; s < samplesf.size(); s++) // for each sample
 	{
 		vector<cv::Mat> scores = FeatureComputeScores(samplesf[s], hf);
@@ -742,6 +755,7 @@ ECO_FEATS EcoTrain::lhs_operation_filter(const ECO_FEATS &hf,
 	for (size_t i = 0; i < (size_t)num_features; i++) // for each feature
 	{
 		vector<cv::Mat> tmp;
+		tmp.reserve(hf[i].size());
 		for (size_t j = 0; j < hf[i].size(); j++) // for each dimension
 		{
 			int pad = (output_sz.height - hf[i][j].rows) / 2;
@@ -813,6 +827,7 @@ EcoTrain::ECO_EQ EcoTrain::jointDotDivision(const ECO_EQ &a,
 	for (size_t i = 0; i < a.up_part_.size(); i++) // for each feature
 	{
 		vector<cv::Mat> tmp;
+		tmp.reserve(a.up_part_[i].size());
 		for (size_t j = 0; j < a.up_part_[i].size(); j++) // for each dimension
 		{
 			tmp.push_back(complexDotDivision(a.up_part_[i][j], b.up_part_[i][j]));

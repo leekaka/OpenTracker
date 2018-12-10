@@ -17,6 +17,7 @@ extern std::vector<T> operator+(const std::vector<T> &a,
 {
 	assert(a.size() == b.size());
 	std::vector<T> result;
+	result.reserve(a.size());
 	for (unsigned int i = 0; i < a.size(); ++i)
 	{
 		result.push_back(a[i] + b[i]);
@@ -30,6 +31,7 @@ extern std::vector<T> operator-(const std::vector<T> &a,
 {
 	assert(a.size() == b.size());
 	std::vector<T> result;
+	result.reserve(a.size());
 	for (unsigned int i = 0; i < a.size(); ++i)
 	{
 		result.push_back(a[i] - b[i]);
@@ -41,6 +43,7 @@ template <typename T>
 extern std::vector<T> operator*(const std::vector<T> &a, const float scale)
 {
 	std::vector<T> result;
+	result.reserve(a.size());
 	for (unsigned int i = 0; i < a.size(); ++i)
 	{
 		result.push_back(a[i] * scale);
