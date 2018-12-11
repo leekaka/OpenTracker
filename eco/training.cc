@@ -30,8 +30,8 @@ void EcoTrain::train_init(const ECO_FEATS &hf,
 //************************************************************************
 //     	Filter training and Projection updating(for the 1st Frame)
 //************************************************************************
-bool deltaP_init = false;
-bool lhs_init = false;
+bool b_deltaP_init = false;	//deltaP每次GN迭代都会重新初始化为0,保证只初始化一次
+bool b_calWith_deltaP = false; //每次GN迭代（即CG首次迭代）deltaP为0,则与deltaP相乘的项可直接赋为0
 void EcoTrain::train_joint()
 {
 	// 1. Initial Gauss-Newton optimization of the filter and projection matrix.
@@ -162,9 +162,9 @@ void EcoTrain::train_joint()
 		printVector_Mat(rhs_samplef2);
 */
 		// Initialize the projection matrix increment to zero
-		if (!deltaP_init)
+		if (!b_deltaP_init)
 		{
-			deltaP_init = true;
+			b_deltaP_init = true;
 			for (size_t i = 0; i < projection_matrix_.size(); i++)
 			{
 				deltaP.push_back(cv::Mat::zeros(projection_matrix_[i].size(),
@@ -174,7 +174,7 @@ void EcoTrain::train_joint()
 		ECO_EQ jointFP(hf_, deltaP);
 
 		// Do conjugate gradient
-		lhs_init = true;
+		b_calWith_deltaP = false; //每一次GN迭代都重置标志符，因为deltaP都初始化为0
 		ECO_EQ outFP = pcg_eco_joint(init_samplef_proj,
 									 reg_filter_,
 									 init_samplesf,
@@ -192,7 +192,8 @@ void EcoTrain::train_joint()
 	}
 }
 
-static bool Ax_init = false;
+static bool b_calWith_init_hf = false; //Ax第一次计算结果为0（因为f和deltaP初始值均为0）
+									   //GN第一次迭代中所有CG迭代init_hf初值均为0,因此所有与init_hf相乘的项均可直接置为0
 EcoTrain::ECO_EQ EcoTrain::pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
 										 const vector<cv::Mat> &reg_filter,
 										 const ECO_FEATS &init_samplef,
@@ -215,10 +216,9 @@ EcoTrain::ECO_EQ EcoTrain::pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
 
 	// calculate A(x)
 	ECO_EQ Ax;
-	if (!Ax_init)
+	if (!b_calWith_init_hf) //Ax第一次直接赋值为初值x(即0)
 	{
 		Ax = x;
-		Ax_init = true;
 	}
 	else
 	{
@@ -321,6 +321,7 @@ EcoTrain::ECO_EQ EcoTrain::pcg_eco_joint(const ECO_FEATS &init_samplef_proj,
 			r = r - q * alpha;
 		}
 	}
+	b_calWith_init_hf = true;
 	return x;
 }
 
@@ -431,85 +432,100 @@ EcoTrain::ECO_EQ EcoTrain::lhs_operation_joint(const ECO_EQ &hf,
 	// Stuff related to the projection matrix------------------------------
 
 	// B * deltaP = X * inti(f)(before GC . previous  NG) * delta(P)
-	vector<cv::Mat> BP_cell =
-		FeatureComputeScores(FeatureProjection(init_samplef, deltaP), init_hf);
-
-	cv::Mat BP(cv::Mat::zeros(BP_cell[k1].size(), BP_cell[k1].type()));
-	for (size_t i = 0; i < scores.size(); i++)
-	{
-		int pad = (output_sz.height - BP_cell[i].rows) / 2;
-		cv::Rect roi = cv::Rect(pad, pad, BP_cell[i].cols, BP_cell[i].rows);
-		//cv::Mat temp = BP_cell[i] + BP(roi);
-		//temp.copyTo(BP(roi));
-		BP(roi) = BP_cell[i] + BP(roi);
-	}
-	// cout << scores.size() << " " << scores[1].rows << " " << scores[1].cols << " " << scores[1].type() << endl;
-	// cout << " " << BP.rows << " " << BP.cols << " " << BP.type() << endl;
-	// cout << BP << endl;
-	// A^H * B * dP
-	ECO_FEATS fBP, shBP;
-	fBP.reserve(num_features);
-	shBP.reserve(num_features);
-	for (size_t i = 0; i < (size_t)num_features; i++)
-	{
-		vector<cv::Mat> vfBP, vshBP;
-		vfBP.reserve(hf_out1[i].size());
-		vshBP.reserve(hf_out1[i].size());
-		for (size_t j = 0; j < hf_out1[i].size(); j++)
-		{
-			int pad = (output_sz.height - hf_out1[i][0].rows) / 2;
-			cv::Rect roi = cv::Rect(pad, pad, hf_out1[i][0].cols, hf_out1[i][0].rows);
-			cv::Mat temp =
-				complexDotMultiplication(BP(roi),
-										 mat_conj(samplesf[i][j].clone()));
-			// A^H * A * f + W^H * W * f + A^H * B * dp
-			hf_out1[i][j] += temp;
-
-			vfBP.push_back(
-				complexDotMultiplication(mat_conj(init_hf[i][j].clone()),
-										 BP(roi))); // B^H * BP
-			vshBP.push_back(
-				complexDotMultiplication(mat_conj(init_hf[i][j].clone()),
-										 sh(roi))); // B^H * A * f
-		}
-		fBP.push_back(vfBP);
-		shBP.push_back(vshBP);
-	}
-
 	std::vector<cv::Mat> hf_out2;
 	hf_out2.reserve(num_features);
-	for (size_t i = 0; i < (size_t)num_features; i++)
+	if (!b_calWith_init_hf)
 	{
-		// the index of last frequency colunm starts
-		int fi = hf_out1[i][0].rows * (hf_out1[i][0].cols - 1) + 0;
-
-		// B^H * B * dP + λ * dp
-		int c_len = XH[i].cols;
-		cv::Mat part1;
-		if (lhs_init)
+		for (size_t i = 0; i < (size_t)num_features; i++)
 		{
-			lhs_init = false;
-			part1 = hf.low_part_[i];
+			hf_out2.push_back(params_.projection_reg * deltaP[i]);
 		}
-		else
-		{
-			part1 = XH[i] * FeatureVectorization(fBP)[i].t() -
-					XH[i].colRange(fi, c_len) * FeatureVectorization(fBP)[i].colRange(fi, c_len).t();
-			part1 = 2 * real2complex(real(part1)) +
-					params_.projection_reg * deltaP[i];
-		}
-
-		// Compute proj matrix part : B^H * A * f
-		cv::Mat part2 = XH[i] * FeatureVectorization(shBP)[i].t() -
-						XH[i].colRange(fi, c_len) * FeatureVectorization(shBP)[i].colRange(fi, c_len).t();
-		part2 = 2 * real2complex(real(part2));
-
-		// cout << hf.low_part_.size() << " " << hf.low_part_[i].rows << " " << hf.low_part_[i].cols << " " << hf.low_part_[i].type() << endl;
-		// cout << part1.rows << " " << part1.cols << " " << part1.type() << endl;
-		// cout << hf.low_part_[i] << endl;
-		// cout << part1 << endl;
-		hf_out2.push_back(part1 + part2); // B^H * A * f + B^H * B * dp
 	}
+	else
+	{
+		vector<cv::Mat> BP_cell =
+			FeatureComputeScores(FeatureProjection(init_samplef, deltaP), init_hf);
+
+		cv::Mat BP(cv::Mat::zeros(BP_cell[k1].size(), BP_cell[k1].type()));
+		for (size_t i = 0; i < scores.size(); i++)
+		{
+			int pad = (output_sz.height - BP_cell[i].rows) / 2;
+			cv::Rect roi = cv::Rect(pad, pad, BP_cell[i].cols, BP_cell[i].rows);
+			//cv::Mat temp = BP_cell[i] + BP(roi);
+			//temp.copyTo(BP(roi));
+			BP(roi) = BP_cell[i] + BP(roi);
+		}
+		// cout << scores.size() << " " << scores[1].rows << " " << scores[1].cols << " " << scores[1].type() << endl;
+		// cout << " " << BP.rows << " " << BP.cols << " " << BP.type() << endl;
+		// cout << BP << endl;
+		// A^H * B * dP
+		ECO_FEATS fBP, shBP;
+		fBP.reserve(num_features);
+		shBP.reserve(num_features);
+		for (size_t i = 0; i < (size_t)num_features; i++)
+		{
+			vector<cv::Mat> vfBP, vshBP;
+			vfBP.reserve(hf_out1[i].size());
+			vshBP.reserve(hf_out1[i].size());
+			for (size_t j = 0; j < hf_out1[i].size(); j++)
+			{
+				int pad = (output_sz.height - hf_out1[i][0].rows) / 2;
+				cv::Rect roi = cv::Rect(pad, pad, hf_out1[i][0].cols, hf_out1[i][0].rows);
+				cv::Mat temp =
+					complexDotMultiplication(BP(roi),
+											 mat_conj(samplesf[i][j].clone()));
+				// A^H * A * f + W^H * W * f + A^H * B * dp
+				hf_out1[i][j] += temp;
+
+				vfBP.push_back(
+					complexDotMultiplication(mat_conj(init_hf[i][j].clone()),
+											 BP(roi))); // B^H * BP
+				vshBP.push_back(
+					complexDotMultiplication(mat_conj(init_hf[i][j].clone()),
+											 sh(roi))); // B^H * A * f
+			}
+			fBP.push_back(vfBP);
+			shBP.push_back(vshBP);
+		}
+
+		for (size_t i = 0; i < (size_t)num_features; i++)
+		{
+			// the index of last frequency colunm starts
+			int fi = hf_out1[i][0].rows * (hf_out1[i][0].cols - 1) + 0;
+
+			// B^H * B * dP + λ * dp
+			int c_len = XH[i].cols;
+			cv::Mat part1;
+			if (!b_calWith_deltaP)
+			{
+				part1 = hf.low_part_[i];
+			}
+			else
+			{
+				part1 = XH[i] * FeatureVectorization(fBP)[i].t() -
+						XH[i].colRange(fi, c_len) * FeatureVectorization(fBP)[i].colRange(fi, c_len).t();
+				part1 = 2 * real2complex(real(part1)) +
+						params_.projection_reg * deltaP[i];
+			}
+
+			// Compute proj matrix part : B^H * A * f
+			cv::Mat part2 = XH[i] * FeatureVectorization(shBP)[i].t() -
+							XH[i].colRange(fi, c_len) * FeatureVectorization(shBP)[i].colRange(fi, c_len).t();
+			part2 = 2 * real2complex(real(part2));
+
+			// cout << hf.low_part_.size() << " " << hf.low_part_[i].rows << " " << hf.low_part_[i].cols << " " << hf.low_part_[i].type() << endl;
+			// cout << part1.rows << " " << part1.cols << " " << part1.type() << endl;
+			// cout << hf.low_part_[i] << endl;
+			// cout << part1 << endl;
+			hf_out2.push_back(part1 + part2); // B^H * A * f + B^H * B * dp
+
+			// cout << "lambda*deltaP\n"
+			// 	 << params_.projection_reg * deltaP[i] << endl;
+			// cout << "hf_out2:\n"
+			// 	 << hf_out2[i] << endl;
+		}
+	}
+	b_calWith_deltaP = true;
 
 	ECO_EQ AX;
 	AX.up_part_ = hf_out1;
